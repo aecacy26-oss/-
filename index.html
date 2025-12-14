@@ -3,58 +3,54 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Xmas Tree Particles + Hands</title>
+  <title>Xmas Tree (Icy) + Gold Ribbon + Hands</title>
   <style>
-    html, body { margin:0; height:100%; overflow:hidden; background:#050713; }
+    html, body { margin:0; height:100%; overflow:hidden; background:#040512; }
     canvas { display:block; }
-    #hud {
-      position: fixed; left: 12px; top: 10px; z-index: 20;
-      color: rgba(210,220,255,.88);
-      font: 12px/1.5 system-ui, -apple-system, Segoe UI, Roboto;
-      user-select: none; white-space: pre;
-      text-shadow: 0 0 10px rgba(60,120,255,.18);
-      max-width: 80vw;
+    #hud{
+      position:fixed; left:12px; top:10px; z-index:20;
+      color:rgba(210,220,255,.9);
+      font:12px/1.5 system-ui, -apple-system, Segoe UI, Roboto;
+      user-select:none; white-space:pre-wrap; max-width:82vw;
+      text-shadow:0 0 12px rgba(90,160,255,.22);
     }
     #overlay{
-      position:fixed; inset:0; z-index: 30;
+      position:fixed; inset:0; z-index:30;
       display:flex; align-items:center; justify-content:center;
-      background: radial-gradient(60% 60% at 50% 40%, rgba(20,30,70,.85), rgba(5,7,19,.96));
-      color: rgba(235,240,255,.96);
-      font: 14px/1.6 system-ui;
+      background:radial-gradient(60% 60% at 50% 40%, rgba(20,30,80,.85), rgba(4,5,18,.97));
+      color:rgba(235,240,255,.96);
+      font:14px/1.6 system-ui;
       user-select:none;
     }
     #panel{
-      width:min(620px, 92vw);
+      width:min(660px, 92vw);
       border:1px solid rgba(120,150,255,.22);
       border-radius:14px;
       padding:18px 18px 14px;
-      background: rgba(10,14,35,.58);
-      box-shadow: 0 10px 40px rgba(0,0,0,.35);
+      background:rgba(10,14,35,.58);
+      box-shadow:0 10px 40px rgba(0,0,0,.35);
     }
-    #btnRow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+    #row{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
     button{
-      padding:10px 14px;
-      border-radius:10px;
+      padding:10px 14px; border-radius:10px;
       border:1px solid rgba(140,170,255,.35);
-      background: rgba(40,70,200,.25);
-      color: rgba(245,248,255,.95);
+      background:rgba(40,70,200,.25);
+      color:rgba(245,248,255,.95);
       cursor:pointer;
     }
     button:disabled{ opacity:.6; cursor:not-allowed; }
-    button:hover{ background: rgba(40,70,200,.35); }
-    #tip{ opacity:.88; margin-top:10px; font-size:12px; }
+    button:hover{ background:rgba(40,70,200,.35); }
     #status{
-      margin-top:10px; font-size:12px; opacity:.9;
+      margin-top:10px; font-size:12px; opacity:.92;
       padding:10px; border-radius:10px;
       border:1px solid rgba(120,150,255,.18);
-      background: rgba(0,0,0,.18);
-      white-space: pre-wrap;
-      word-break: break-word;
+      background:rgba(0,0,0,.18);
+      white-space:pre-wrap; word-break:break-word;
     }
-    #cam {
-      position: fixed; right: 12px; bottom: 12px; z-index: 10;
-      width: 170px; aspect-ratio: 4/3; border-radius: 12px;
-      border: 1px solid rgba(120,150,255,.25);
+    #cam{
+      position:fixed; right:12px; bottom:12px; z-index:10;
+      width:170px; aspect-ratio:4/3; border-radius:12px;
+      border:1px solid rgba(120,150,255,.25);
       display:none; background:#000;
     }
   </style>
@@ -65,21 +61,23 @@
 
   <div id="overlay">
     <div id="panel">
-      <div style="font-size:15px; margin-bottom:8px;">圣诞树粒子 + 手势控制（iPad 兜底版）</div>
+      <div style="font-size:15px; margin-bottom:8px;">冰蓝圣诞树 + 金丝带 + 手势</div>
       <div>捏合（拇指+食指）：吸引</div>
       <div>张开（手掌打开）：爆炸</div>
       <div style="opacity:.85; margin-top:6px;">
-        没手势也能玩：手指按住屏幕=吸引；松开=推开；双击=爆炸
+        兜底触控：按住屏幕=吸引；松开=推开；双击=爆炸
       </div>
 
-      <div id="btnRow">
-        <button id="btnStart">启动摄像头</button>
-        <button id="btnHands" disabled>加载手势模型</button>
-        <button id="btnClose" style="margin-left:auto;">进入画面</button>
+      <div id="row">
+        <button id="btnCam">启动摄像头</button>
+        <button id="btnHands" disabled>启动手势</button>
+        <button id="btnGo" style="margin-left:auto;">进入画面</button>
       </div>
 
-      <div id="tip">你开着 VPN 的话，模型/wasm 可能会加载失败，但画面和触控照样能用。</div>
       <div id="status">状态：等待操作</div>
+      <div style="opacity:.8; margin-top:8px; font-size:12px;">
+        如果你必须开 VPN 才能访问页面，那就尽量选“全局/稳定节点”。手势启动失败时，看状态框最后几行就知道卡在哪。
+      </div>
     </div>
   </div>
 
@@ -88,97 +86,118 @@
   <script type="module">
     import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.module.js";
 
-    // -----------------------------
-    // 小工具：状态/日志/超时
-    // -----------------------------
+    // ---------- UI ----------
     const hud = document.getElementById("hud");
     const overlay = document.getElementById("overlay");
     const statusBox = document.getElementById("status");
-    const btnStart = document.getElementById("btnStart");
+    const btnCam = document.getElementById("btnCam");
     const btnHands = document.getElementById("btnHands");
-    const btnClose = document.getElementById("btnClose");
+    const btnGo = document.getElementById("btnGo");
     const video = document.getElementById("cam");
 
-    function setStatus(s){ statusBox.textContent = "状态： " + s; }
-    function addStatus(s){ statusBox.textContent += "\n" + s; }
+    const setStatus = (s)=> statusBox.textContent = "状态： " + s;
+    const addStatus = (s)=> statusBox.textContent += "\n" + s;
+
     function withTimeout(p, ms, label){
       return new Promise((resolve, reject)=>{
-        const t = setTimeout(()=>reject(new Error(`${label} timeout`)), ms);
-        p.then(v=>{ clearTimeout(t); resolve(v); })
-         .catch(e=>{ clearTimeout(t); reject(e); });
+        const t = setTimeout(()=>reject(new Error(label + " timeout")), ms);
+        p.then(v=>{ clearTimeout(t); resolve(v); }).catch(e=>{ clearTimeout(t); reject(e); });
+      });
+    }
+    function loadScript(url){
+      return new Promise((resolve, reject)=>{
+        const s = document.createElement("script");
+        s.src = url; s.crossOrigin = "anonymous";
+        s.onload = ()=>resolve(true);
+        s.onerror = ()=>reject(new Error("script load failed: " + url));
+        document.head.appendChild(s);
       });
     }
 
-    // -----------------------------
-    // Three.js 场景
-    // -----------------------------
+    btnGo.addEventListener("click", ()=> overlay.style.display="none");
+
+    // ---------- Scene ----------
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x050713, 25, 110);
+    scene.fog = new THREE.Fog(0x040512, 25, 120);
 
-    const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 220);
-    camera.position.set(0, 18, 58);
-    camera.lookAt(0, 8, 0);
+    const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 260);
+    camera.position.set(0, 18, 60);
+    camera.lookAt(0, 9, 0);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+    const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true, powerPreference:"high-performance" });
     renderer.setSize(innerWidth, innerHeight);
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     document.body.appendChild(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-
-    // -----------------------------
-    // 粒子圣诞树（主树 / 蓝丝带 / 金铃铛）
-    // -----------------------------
-    const H = 34, BASE_R = 16;
-    // iPad 更稳：粒子降一档
-    const MAIN = 18000, RIB = 3800, BELL = 180;
+    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+    const point = new THREE.PointLight(0x88ccff, 1.2, 200);
+    point.position.set(0, 30, 30);
+    scene.add(point);
 
     const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
     const rand = (a=1,b=0)=>b+Math.random()*(a-b);
 
-    function buildConePoint() {
+    // ---------- Icy tree particles + Gold ribbon ----------
+    const H = 34, BASE_R = 16;
+    const MAIN = 19000, RIB = 5200, BELL = 220;
+    const SNOW = 1400;
+
+    function buildConePoint(){
       const y = rand(H/2, -H/2);
       const t = (y + H/2) / H;
-      const r = (1 - t) * BASE_R * rand(1.05, 0.78);
+      const r = (1 - t) * BASE_R * rand(1.06, 0.78);
       const rr = Math.sqrt(Math.random()) * r;
-      const a  = Math.random() * Math.PI * 2;
-      let x = Math.cos(a) * rr + rand(0.25, -0.25);
-      let z = Math.sin(a) * rr + rand(0.25, -0.25);
-      return { x, y, z, t };
+      const a = Math.random()*Math.PI*2;
+      let x = Math.cos(a)*rr + rand(0.22, -0.22);
+      let z = Math.sin(a)*rr + rand(0.22, -0.22);
+      return {x,y,z,t};
     }
-    function goldColor(t) {
-      const bright = 0.65 + (1 - t) * 0.10 + Math.random() * 0.08;
-      return { r: clamp(bright + 0.22,0,1), g: clamp(bright + 0.08,0,1), b: clamp(0.15 + Math.random()*0.08,0,1) };
+
+    function icyColor(t){
+      // 更像你图里的冰蓝：底部偏蓝，顶部偏白亮
+      const w = clamp(0.55 + (1-t)*0.18 + Math.random()*0.10, 0, 1);
+      const r = clamp(0.40 + Math.random()*0.08 + (1-t)*0.10, 0, 1);
+      const g = clamp(0.62 + Math.random()*0.10 + (1-t)*0.12, 0, 1);
+      const b = clamp(0.92 + Math.random()*0.10 + (1-t)*0.06, 0, 1);
+      // 混一点白
+      return { r: r*(1-0.35)+w*0.35, g: g*(1-0.35)+w*0.35, b: b*(1-0.20)+w*0.20 };
     }
-    function blueRibbonColor() {
-      return { r: 0.18 + Math.random()*0.05, g: 0.35 + Math.random()*0.10, b: 0.92 + Math.random()*0.08 };
+
+    function goldRibbonColor(){
+      const r = 0.98;
+      const g = 0.78 + Math.random()*0.10;
+      const b = 0.18 + Math.random()*0.06;
+      return {r,g,b};
     }
-    function createPoints(count, size, blendingAdd=true) {
+
+    function createPoints(count, size){
       const geom = new THREE.BufferGeometry();
-      const pos  = new Float32Array(count * 3);
-      const col  = new Float32Array(count * 3);
-      const vel  = new Float32Array(count * 3);
-      const rest = new Float32Array(count * 3);
-      geom.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-      geom.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      const pos  = new Float32Array(count*3);
+      const col  = new Float32Array(count*3);
+      const vel  = new Float32Array(count*3);
+      const rest = new Float32Array(count*3);
+      geom.setAttribute("position", new THREE.BufferAttribute(pos,3));
+      geom.setAttribute("color", new THREE.BufferAttribute(col,3));
 
       const mat = new THREE.PointsMaterial({
         size,
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.95,
-        depthWrite: false,
-        blending: blendingAdd ? THREE.AdditiveBlending : THREE.NormalBlending
+        vertexColors:true,
+        transparent:true,
+        opacity:0.96,
+        depthWrite:false,
+        blending:THREE.AdditiveBlending
       });
+
       const pts = new THREE.Points(geom, mat);
       scene.add(pts);
-      return { pts, geom, pos, col, vel, rest };
+      return {pts, geom, pos, col, vel, rest};
     }
 
-    const main = createPoints(MAIN, 0.095, true);
-    for (let i=0;i<MAIN;i++){
+    const main = createPoints(MAIN, 0.10);
+    for(let i=0;i<MAIN;i++){
       const i3=i*3;
-      const p=buildConePoint(), c=goldColor(p.t);
+      const p=buildConePoint();
+      const c=icyColor(p.t);
       main.pos[i3]=main.rest[i3]=p.x;
       main.pos[i3+1]=main.rest[i3+1]=p.y;
       main.pos[i3+2]=main.rest[i3+2]=p.z;
@@ -186,35 +205,41 @@
       main.vel[i3]=rand(0.008,-0.008); main.vel[i3+1]=rand(0.006,-0.006); main.vel[i3+2]=rand(0.008,-0.008);
     }
 
-    const ribbon = createPoints(RIB, 0.13, true);
-    const turns = 7.2;
-    for (let i=0;i<RIB;i++){
+    // 金丝带：螺旋更明显一点
+    const ribbon = createPoints(RIB, 0.14);
+    const turns = 7.4;
+    for(let i=0;i<RIB;i++){
       const i3=i*3;
       const t=i/(RIB-1);
       const y=-H/2+t*H;
       const radius=(1-t)*BASE_R*0.98;
-      const a=t*turns*Math.PI*2+(t>0.55?Math.PI*0.65:0);
-      const rJ=radius+rand(0.55,-0.55);
-      const x=Math.cos(a)*rJ+rand(0.20,-0.20);
-      const z=Math.sin(a)*rJ+rand(0.20,-0.20);
-      const c=blueRibbonColor();
+      const a=t*turns*Math.PI*2 + (t>0.55?Math.PI*0.65:0);
+
+      // 丝带厚度 + 轻微起伏
+      const rJ = radius + rand(0.65, -0.65);
+      const x = Math.cos(a)*rJ + rand(0.18,-0.18);
+      const z = Math.sin(a)*rJ + rand(0.18,-0.18);
+
+      const c = goldRibbonColor();
       ribbon.pos[i3]=ribbon.rest[i3]=x;
       ribbon.pos[i3+1]=ribbon.rest[i3+1]=y;
       ribbon.pos[i3+2]=ribbon.rest[i3+2]=z;
       ribbon.col[i3]=c.r; ribbon.col[i3+1]=c.g; ribbon.col[i3+2]=c.b;
+
       ribbon.vel[i3]=rand(0.007,-0.007); ribbon.vel[i3+1]=rand(0.006,-0.006); ribbon.vel[i3+2]=rand(0.007,-0.007);
     }
 
-    const bells = createPoints(BELL, 0.40, true);
-    for (let i=0;i<BELL;i++){
+    // 小铃铛：点缀金白
+    const bells = createPoints(BELL, 0.42);
+    for(let i=0;i<BELL;i++){
       const i3=i*3;
-      const levelT=[0.18,0.28,0.40,0.52,0.64,0.76][Math.floor(Math.random()*6)];
+      const levelT=[0.20,0.30,0.42,0.54,0.66,0.76][Math.floor(Math.random()*6)];
       const y=-H/2+levelT*H+rand(0.9,-0.9);
       const r=(1-levelT)*BASE_R*0.98;
       const a=Math.random()*Math.PI*2;
       const x=Math.cos(a)*(r+rand(0.8,0.2));
       const z=Math.sin(a)*(r+rand(0.8,0.2));
-      const c={ r:1.0, g:0.82+Math.random()*0.08, b:0.25+Math.random()*0.06 };
+      const c={ r:1.0, g:0.86+Math.random()*0.08, b:0.35+Math.random()*0.06 };
       bells.pos[i3]=bells.rest[i3]=x;
       bells.pos[i3+1]=bells.rest[i3+1]=y;
       bells.pos[i3+2]=bells.rest[i3+2]=z;
@@ -222,253 +247,237 @@
       bells.vel[i3]=rand(0.004,-0.004); bells.vel[i3+1]=rand(0.004,-0.004); bells.vel[i3+2]=rand(0.004,-0.004);
     }
 
-    // -----------------------------
-    // 输入：触控/鼠标 + 手势（可选）
-    // -----------------------------
-    const pointerNDC = new THREE.Vector2(0, 0);
-    const pointerNDCSmooth = new THREE.Vector2(0, 0);
-    const pointerWorld = new THREE.Vector3(0, 0, 0);
-    const raycaster = new THREE.Raycaster();
-    const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-
-    let mouseDown = false;
-    let usingHands = false;
-
-    let gesture = "touch/mouse";
-    let pinch = NaN;
-    let openScore = 0;
-    let explosion = 0;
-    let lastExplodeAt = 0;
-
-    function ndcFromClient(x,y){
-      pointerNDC.x = (x / innerWidth) * 2 - 1;
-      pointerNDC.y = -(y / innerHeight) * 2 + 1;
+    // 飘雪背景
+    const snow = createPoints(SNOW, 0.08);
+    for(let i=0;i<SNOW;i++){
+      const i3=i*3;
+      const x=rand(60,-60), y=rand(55,-5), z=rand(50,-50);
+      snow.pos[i3]=snow.rest[i3]=x;
+      snow.pos[i3+1]=snow.rest[i3+1]=y;
+      snow.pos[i3+2]=snow.rest[i3+2]=z;
+      const c={r:0.95,g:0.98,b:1.0};
+      snow.col[i3]=c.r; snow.col[i3+1]=c.g; snow.col[i3+2]=c.b;
+      snow.vel[i3]=0; snow.vel[i3+1]=rand(-0.06,-0.18); snow.vel[i3+2]=0;
     }
 
-    addEventListener("pointerdown", (e)=>{
-      if (usingHands) return;
-      mouseDown = true;
-      ndcFromClient(e.clientX, e.clientY);
-    }, {passive:true});
+    // 顶部星芒（Sprite + 渐变纹理）
+    function makeGlowTexture(){
+      const c=document.createElement("canvas");
+      c.width=c.height=256;
+      const ctx=c.getContext("2d");
+      const g=ctx.createRadialGradient(128,128,0,128,128,120);
+      g.addColorStop(0, "rgba(255,255,255,1)");
+      g.addColorStop(0.25, "rgba(180,230,255,0.95)");
+      g.addColorStop(0.55, "rgba(120,190,255,0.55)");
+      g.addColorStop(1, "rgba(80,140,255,0)");
+      ctx.fillStyle=g;
+      ctx.fillRect(0,0,256,256);
+      const tex=new THREE.CanvasTexture(c);
+      tex.needsUpdate=true;
+      return tex;
+    }
+    const glowMat = new THREE.SpriteMaterial({ map: makeGlowTexture(), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
+    const glow = new THREE.Sprite(glowMat);
+    glow.position.set(0, H/2 + 1.6, 0);
+    glow.scale.set(18,18,1);
+    scene.add(glow);
 
-    addEventListener("pointermove", (e)=>{
-      if (usingHands) return;
-      ndcFromClient(e.clientX, e.clientY);
-    }, {passive:true});
+    // ---------- Input (touch/mouse + hands) ----------
+    const pointerNDC = new THREE.Vector2(0,0);
+    const pointerNDCSmooth = new THREE.Vector2(0,0);
+    const pointerWorld = new THREE.Vector3(0,0,0);
+    const raycaster = new THREE.Raycaster();
+    const planeZ = new THREE.Plane(new THREE.Vector3(0,0,1), 0);
 
-    addEventListener("pointerup", ()=>{
-      if (usingHands) return;
-      mouseDown = false;
-    }, {passive:true});
+    let mouseDown=false;
+    let usingHands=false;
+    let gesture="touch/mouse";
+    let pinch=NaN;
+    let openScore=0;
+    let explosion=0;
+    let lastExplodeAt=0;
 
-    addEventListener("dblclick", ()=>{
-      const now = performance.now();
-      if (now - lastExplodeAt > 450){
-        explosion = 1.0;
-        lastExplodeAt = now;
-      }
+    function ndcFromClient(x,y){
+      pointerNDC.x = (x/innerWidth)*2-1;
+      pointerNDC.y = -(y/innerHeight)*2+1;
+    }
+    addEventListener("pointerdown",(e)=>{ if(usingHands) return; mouseDown=true; ndcFromClient(e.clientX,e.clientY); }, {passive:true});
+    addEventListener("pointermove",(e)=>{ if(usingHands) return; ndcFromClient(e.clientX,e.clientY); }, {passive:true});
+    addEventListener("pointerup",()=>{ if(usingHands) return; mouseDown=false; }, {passive:true});
+    addEventListener("dblclick",()=>{
+      const now=performance.now();
+      if(now-lastExplodeAt>450){ explosion=1.0; lastExplodeAt=now; }
     });
 
-    function updatePointerWorld() {
+    function updatePointerWorld(){
       pointerNDCSmooth.lerp(pointerNDC, 0.25);
       raycaster.setFromCamera(pointerNDCSmooth, camera);
       raycaster.ray.intersectPlane(planeZ, pointerWorld);
     }
 
-    // -----------------------------
-    // 摄像头
-    // -----------------------------
+    // ---------- Camera ----------
     async function startCam(){
-      if (video.srcObject) return;
+      if(video.srcObject) return;
       setStatus("正在请求摄像头权限…");
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width:{ideal:640}, height:{ideal:480} },
-        audio: false
+        video:{ facingMode:"user", width:{ideal:640}, height:{ideal:480} },
+        audio:false
       });
       video.srcObject = stream;
       await video.play();
       addStatus("摄像头已开启");
     }
 
-    // -----------------------------
-    // MediaPipe Hands：多地址兜底（应对 VPN/网络抽风）
-    // -----------------------------
-    const TASKS_VER = "0.10.18";
+    // ---------- MediaPipe Hands (avoid Google Storage) ----------
+    const HANDS_VER = "0.4.1675469240";
+    const CAM_VER   = "0.3.1675466862";
 
-    // 1) JS 包：先 jsdelivr，失败就换 unpkg
-    const VISION_BUNDLE_URLS = [
-      `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VER}/vision_bundle.js`,
-      `https://unpkg.com/@mediapipe/tasks-vision@${TASKS_VER}/vision_bundle.js`,
-    ];
-
-    // 2) wasm 根目录：同理做两套
-    const WASM_ROOTS = [
-      `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VER}/wasm`,
-      `https://unpkg.com/@mediapipe/tasks-vision@${TASKS_VER}/wasm`,
-    ];
-
-    // 3) 模型：先本地，再官方两个路径（你可以后续把 hand_landmarker.task 放仓库根目录）
-    const MODEL_LOCAL = "./hand_landmarker.task";
-    const MODEL_REMOTE_LIST = [
-      // 有些线路对 latest 更通（也有相反情况，所以两个都放）
-      "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task",
-      "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-    ];
-
-    let handLandmarker = null;
-    let lastInferMs = 0;
-    const INFER_INTERVAL_MS = 80;
-
-    function loadScript(url){
-      return new Promise((resolve, reject)=>{
-        const s = document.createElement("script");
-        s.src = url;
-        s.crossOrigin = "anonymous";
-        s.onload = ()=>resolve(true);
-        s.onerror = ()=>reject(new Error("script load failed: " + url));
-        document.head.appendChild(s);
-      });
-    }
-
-    async function ensureVisionBundle(){
-      if (globalThis.FilesetResolver && globalThis.HandLandmarker) return;
-      let lastErr = null;
-      for (const url of VISION_BUNDLE_URLS){
-        try{
-          addStatus("加载手势库: " + url);
-          await withTimeout(loadScript(url), 12000, "vision_bundle");
-          if (globalThis.FilesetResolver && globalThis.HandLandmarker) return;
-        }catch(e){
-          lastErr = e;
-          addStatus("失败，换下一个手势库源");
-        }
+    const SOURCES = [
+      {
+        name:"jsdelivr",
+        handsJs:`https://cdn.jsdelivr.net/npm/@mediapipe/hands@${HANDS_VER}/hands.js`,
+        camJs:`https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@${CAM_VER}/camera_utils.js`,
+        handsBase:`https://cdn.jsdelivr.net/npm/@mediapipe/hands@${HANDS_VER}/`
+      },
+      {
+        name:"unpkg",
+        handsJs:`https://unpkg.com/@mediapipe/hands@${HANDS_VER}/hands.js`,
+        camJs:`https://unpkg.com/@mediapipe/camera_utils@${CAM_VER}/camera_utils.js`,
+        handsBase:`https://unpkg.com/@mediapipe/hands@${HANDS_VER}/`
       }
-      throw lastErr || new Error("MediaPipe Tasks Vision 未能加载（可能被网络/VPN拦了）");
-    }
+    ];
 
-    async function createVision(){
-      const { FilesetResolver } = globalThis;
-      let lastErr = null;
-      for (const base of WASM_ROOTS){
-        try{
-          addStatus("加载 wasm: " + base);
-          return await withTimeout(FilesetResolver.forVisionTasks(base), 12000, "wasm");
-        }catch(e){
-          lastErr = e;
-          addStatus("wasm 失败，换下一个源");
-        }
-      }
-      throw lastErr || new Error("wasm 未能加载");
-    }
-
-    async function tryCreateLandmarker(vision, modelUrl, label){
-      const { HandLandmarker } = globalThis;
-      addStatus(`尝试模型(${label}): ${modelUrl}`);
-      return await withTimeout(HandLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: modelUrl,
-          delegate: "CPU" // iPad 上更稳
-        },
-        runningMode: "VIDEO",
-        numHands: 1,
-        minHandDetectionConfidence: 0.5,
-        minHandPresenceConfidence: 0.5,
-        minTrackingConfidence: 0.5
-      }), 15000, "model");
-    }
+    let mpCamera=null;
+    let hands=null;
 
     async function initHands(){
-      setStatus("正在加载手势库/wasm/模型…（VPN 可能会慢）");
-      await ensureVisionBundle();
+      if(hands) return;
 
-      const vision = await createVision();
+      setStatus("加载手势库…");
+      let chosen=null, lastErr=null;
 
-      // 先本地（如果你能把 hand_landmarker.task 上传到仓库根目录，这个就最稳）
-      try{
-        handLandmarker = await tryCreateLandmarker(vision, MODEL_LOCAL, "local");
-        addStatus("模型已就绪：本地 hand_landmarker.task");
-        return;
-      }catch(e){
-        addStatus("本地模型不可用，切远程…");
-      }
-
-      // 再远程列表轮询
-      let lastErr = null;
-      for (const url of MODEL_REMOTE_LIST){
+      for(const s of SOURCES){
         try{
-          handLandmarker = await tryCreateLandmarker(vision, url, "remote");
-          addStatus("模型已就绪：远程加载成功");
-          return;
+          addStatus(`尝试源：${s.name}`);
+          await withTimeout(loadScript(s.handsJs), 12000, "hands.js");
+          await withTimeout(loadScript(s.camJs), 12000, "camera_utils.js");
+          chosen=s;
+          addStatus("脚本加载成功：" + s.name);
+          break;
         }catch(e){
-          lastErr = e;
-          addStatus("远程模型失败，换下一个…");
+          lastErr=e;
+          addStatus("失败，换下一个源…");
         }
       }
-      throw lastErr || new Error("所有模型地址都加载失败（大概率是 VPN/网络拦了 Google Storage）");
-    }
+      if(!chosen) throw (lastErr || new Error("手势脚本加载失败"));
 
-    function inferHands(nowMs){
-      if (!handLandmarker) return;
-      if (video.readyState < 2) return;
-      if (nowMs - lastInferMs < INFER_INTERVAL_MS) return;
-      lastInferMs = nowMs;
+      // 全局对象来自脚本：Hands / Camera
+      hands = new Hands({
+        locateFile: (file) => chosen.handsBase + file
+      });
 
-      const res = handLandmarker.detectForVideo(video, nowMs);
-      if (!res?.landmarks?.length){
-        usingHands = false;
-        gesture = "touch/mouse";
-        pinch = NaN;
-        return;
-      }
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      });
 
-      usingHands = true;
-      const lm = res.landmarks[0];
-      const wrist = lm[0];
-      const indexTip = lm[8];
-      const thumbTip = lm[4];
-
-      pointerNDC.x = indexTip.x * 2 - 1;
-      pointerNDC.y = -(indexTip.y * 2 - 1);
-
-      pinch = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
-
-      const tips = [8,12,16,20].map(i => lm[i]);
-      openScore = tips.reduce((acc,p)=>acc+Math.hypot(p.x-wrist.x, p.y-wrist.y),0) / tips.length;
-
-      const isPinch = pinch < 0.055;
-      const isOpen  = openScore > 0.26 && pinch > 0.09;
-
-      if (isPinch){
-        gesture = "pinch(attract)";
-        mouseDown = true;
-      } else {
-        mouseDown = false;
-        gesture = isOpen ? "open(explode)" : "open-ish(repel)";
-      }
-
-      if (isOpen){
-        if (nowMs - lastExplodeAt > 650){
-          explosion = 1.0;
-          lastExplodeAt = nowMs;
+      hands.onResults((res)=>{
+        const lm = res?.multiHandLandmarks?.[0];
+        if(!lm){
+          usingHands=false;
+          gesture="touch/mouse";
+          pinch=NaN;
+          return;
         }
-      }
+        usingHands=true;
+
+        const wrist = lm[0];
+        const indexTip = lm[8];
+        const thumbTip = lm[4];
+
+        pointerNDC.x = indexTip.x*2-1;
+        pointerNDC.y = -(indexTip.y*2-1);
+
+        pinch = Math.hypot(indexTip.x-thumbTip.x, indexTip.y-thumbTip.y);
+
+        const tips = [lm[8], lm[12], lm[16], lm[20]];
+        openScore = tips.reduce((a,p)=>a+Math.hypot(p.x-wrist.x, p.y-wrist.y), 0) / tips.length;
+
+        const isPinch = pinch < 0.055;
+        const isOpen  = openScore > 0.26 && pinch > 0.09;
+
+        if(isPinch){
+          gesture="pinch(attract)";
+          mouseDown=true;
+        }else{
+          mouseDown=false;
+          gesture=isOpen ? "open(explode)" : "open-ish(repel)";
+        }
+
+        if(isOpen){
+          const now=performance.now();
+          if(now-lastExplodeAt>650){
+            explosion=1.0;
+            lastExplodeAt=now;
+          }
+        }
+      });
+
+      // 用 camera_utils 驱动帧
+      mpCamera = new Camera(video, {
+        onFrame: async () => {
+          // 节流一点，iPad 更稳
+          if(!hands) return;
+          await hands.send({ image: video });
+        },
+        width: 640,
+        height: 480
+      });
+
+      await mpCamera.start();
+      addStatus("手势已启动：捏合吸引 / 张开爆炸");
     }
 
-    // -----------------------------
-    // 粒子物理：回弹 + 力场
-    // -----------------------------
+    btnCam.addEventListener("click", async ()=>{
+      btnCam.disabled=true;
+      try{
+        await withTimeout(startCam(), 12000, "startCam");
+        btnHands.disabled=false;
+        setStatus("摄像头OK。你可以点“启动手势”，或直接进入画面用触控玩。");
+      }catch(e){
+        console.error(e);
+        setStatus("摄像头启动失败：" + (e?.message || e));
+        btnCam.disabled=false;
+      }
+    });
+
+    btnHands.addEventListener("click", async ()=>{
+      btnHands.disabled=true;
+      try{
+        if(!video.srcObject) await startCam();
+        await withTimeout(initHands(), 20000, "initHands");
+        setStatus("手势OK：捏合吸引 / 张开爆炸");
+      }catch(e){
+        console.error(e);
+        setStatus("手势启动失败：" + (e?.message || e) + "\n（你仍可用触控玩；如果必须开VPN，换个更稳的节点）");
+        btnHands.disabled=false;
+      }
+    });
+
+    // ---------- Physics ----------
     function step(system, modeStrength){
-      const { pos, vel, rest, geom } = system;
-      const px = pointerWorld.x, py = pointerWorld.y, pz = 0;
-      const R = 10.5, R2 = R*R;
-      const SPRING = 0.0048, DAMP = 0.985, WANDER = 0.0006;
+      const {pos, vel, rest, geom} = system;
+      const px=pointerWorld.x, py=pointerWorld.y, pz=0;
+      const R=10.8, R2=R*R;
+      const SPRING=0.0046, DAMP=0.985, WANDER=0.00055;
 
-      for (let i=0;i<pos.length;i+=3){
+      for(let i=0;i<pos.length;i+=3){
         const x=pos[i], y=pos[i+1], z=pos[i+2];
-
-        let vx = vel[i]*DAMP + (rest[i]-x)*SPRING;
-        let vy = vel[i+1]*DAMP + (rest[i+1]-y)*SPRING;
-        let vz = vel[i+2]*DAMP + (rest[i+2]-z)*SPRING;
+        let vx=vel[i]*DAMP+(rest[i]-x)*SPRING;
+        let vy=vel[i+1]*DAMP+(rest[i+1]-y)*SPRING;
+        let vz=vel[i+2]*DAMP+(rest[i+2]-z)*SPRING;
 
         vx += (Math.random()-0.5)*WANDER;
         vy += (Math.random()-0.5)*WANDER;
@@ -477,21 +486,21 @@
         const dx=x-px, dy=y-py, dz=z-pz;
         const d2=dx*dx+dy*dy+dz*dz+1e-6;
 
-        if (d2 < R2){
+        if(d2<R2){
           const d=Math.sqrt(d2);
-          const falloff = (1 - d/R);
+          const falloff=(1-d/R);
 
-          const repel = 0.070*falloff*modeStrength;
-          const attract=0.095*falloff*modeStrength;
+          const repel=0.070*falloff*modeStrength;
+          const attract=0.100*falloff*modeStrength;
 
-          if (mouseDown){
+          if(mouseDown){
             vx += (-dx/d)*attract; vy += (-dy/d)*attract; vz += (-dz/d)*attract;
-          } else {
+          }else{
             vx += (dx/d)*repel;    vy += (dy/d)*repel;    vz += (dz/d)*repel;
           }
 
-          if (explosion > 0){
-            const boom = (0.22*falloff)*explosion;
+          if(explosion>0){
+            const boom=(0.24*falloff)*explosion;
             vx += (dx/d)*boom; vy += (dy/d)*boom; vz += (dz/d)*boom;
           }
         }
@@ -499,62 +508,45 @@
         pos[i]=x+vx; pos[i+1]=y+vy; pos[i+2]=z+vz;
         vel[i]=vx; vel[i+1]=vy; vel[i+2]=vz;
       }
-      geom.attributes.position.needsUpdate = true;
+      geom.attributes.position.needsUpdate=true;
     }
 
-    // -----------------------------
-    // 按钮逻辑：拆开做，别互相卡死
-    // -----------------------------
-    btnClose.addEventListener("click", ()=>{ overlay.style.display = "none"; });
-
-    btnStart.addEventListener("click", async ()=>{
-      btnStart.disabled = true;
-      try{
-        await withTimeout(startCam(), 12000, "startCam");
-        btnHands.disabled = false;
-        setStatus("摄像头已开启。可点“加载手势模型”，或直接进入画面");
-      }catch(e){
-        console.error(e);
-        setStatus("摄像头启动失败：" + (e?.message || e));
-        btnStart.disabled = false;
+    // snow move
+    function stepSnow(sys){
+      const {pos, vel, geom} = sys;
+      for(let i=0;i<pos.length;i+=3){
+        pos[i+1] += vel[i+1];
+        pos[i]   += Math.sin((pos[i+1]+i)*0.002)*0.01;
+        if(pos[i+1] < -10){
+          pos[i+1] = rand(55, 15);
+          pos[i] = rand(60, -60);
+          pos[i+2] = rand(50, -50);
+        }
       }
-    });
+      geom.attributes.position.needsUpdate=true;
+    }
 
-    btnHands.addEventListener("click", async ()=>{
-      btnHands.disabled = true;
-      try{
-        await initHands();
-        setStatus("手势模型已就绪：捏合吸引，张开爆炸");
-      }catch(e){
-        console.error(e);
-        setStatus("手势加载失败：" + (e?.message || e) + "\n（多半是 VPN/网络拦了某些资源；你仍可触控玩）");
-        btnHands.disabled = false; // 允许重试
-      }
-    });
-
-    // -----------------------------
-    // 主循环
-    // -----------------------------
-    let t0 = performance.now();
-
+    // ---------- Loop ----------
+    let t0=performance.now();
     function animate(now){
       requestAnimationFrame(animate);
-
-      inferHands(now);
       updatePointerWorld();
 
       explosion = Math.max(0, explosion - 0.035);
 
-      const dt = Math.min(0.05, (now - t0) / 1000);
-      t0 = now;
+      const dt=Math.min(0.05,(now-t0)/1000);
+      t0=now;
 
-      main.pts.rotation.y += dt * 0.10;
-      ribbon.pts.rotation.y += dt * 0.14;
-      bells.pts.rotation.y += dt * 0.08;
+      // 微旋转 + 星芒呼吸
+      main.pts.rotation.y += dt*0.10;
+      ribbon.pts.rotation.y += dt*0.14;
+      bells.pts.rotation.y += dt*0.08;
+      glow.material.opacity = 0.75 + Math.sin(now*0.004)*0.20;
 
       step(main, 1.00);
       step(ribbon, 1.10);
       step(bells, 0.85);
+      stepSnow(snow);
 
       hud.textContent =
 `输入: ${usingHands ? "摄像头手势" : "触控/鼠标"}
@@ -568,13 +560,13 @@ open : ${openScore.toFixed(3)}
     requestAnimationFrame(animate);
 
     addEventListener("resize", ()=>{
-      camera.aspect = innerWidth / innerHeight;
+      camera.aspect=innerWidth/innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(innerWidth, innerHeight);
-      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+      renderer.setPixelRatio(Math.min(devicePixelRatio,2));
     });
 
-    setStatus("页面已运行：先点“启动摄像头”。如果模型加载失败，看状态框最后两三行就知道卡在哪。");
+    setStatus("页面已运行：先点“启动摄像头”。如果手势失败，状态框会说是脚本源失败还是权限失败。");
   </script>
 </body>
 </html>
